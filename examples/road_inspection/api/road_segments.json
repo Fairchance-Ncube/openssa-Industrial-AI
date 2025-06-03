@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1",
+    "name": "Segment A",
+    "geometry": "LINESTRING(0 0, 1 1)",
+    "road_condition_index": 45,
+    "damage_types": ["cracks"],
+    "last_inspection": "2024-01-01T00:00:00Z",
+    "priority": "High",
+    "status": "Needs Repair"
+  },
+  {
+    "id": "2",
+    "name": "Segment B",
+    "geometry": "LINESTRING(1 1, 2 2)",
+    "road_condition_index": 80,
+    "damage_types": ["none"],
+    "last_inspection": "2024-01-02T00:00:00Z",
+    "priority": "Low",
+    "status": "Active"
+  }
+]
