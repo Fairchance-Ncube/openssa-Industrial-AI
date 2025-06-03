@@ -41,6 +41,7 @@ docs/_build/
 examples/**/*.json
 !examples/**/package.json
 !examples/**/package-lock.json
+!examples/road_inspection/api/road_segments.json
 
 
 # Exception

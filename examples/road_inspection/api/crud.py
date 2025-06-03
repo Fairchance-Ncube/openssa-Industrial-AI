@@ -1,3 +1,5 @@
+"""CRUD helpers for the road inspection API."""
+
 import json
 import uuid
 from typing import List, Optional
@@ -9,6 +11,8 @@ from .schemas import RoadSegmentCreate, RoadSegmentUpdate
 
 
 def _compute_priority_and_status(index: int, status: Optional[RoadStatus]) -> tuple[Priority, RoadStatus]:
+    """Derive priority and status values based on the condition index."""
+
     if index < 50:
         return Priority.HIGH, RoadStatus.NEEDS_REPAIR
     if index < 75:
@@ -19,11 +23,15 @@ def _compute_priority_and_status(index: int, status: Optional[RoadStatus]) -> tu
 # JSON fallback helpers
 
 def _load_json() -> List[dict]:
+    """Load road segment records from the JSON fallback file."""
+
     with open(JSON_DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def _write_json(data: List[dict]) -> None:
+    """Persist road segment records to the JSON fallback file."""
+
     with open(JSON_DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=str)
 
@@ -31,14 +39,19 @@ def _write_json(data: List[dict]) -> None:
 # CRUD operations
 
 def get_segments(db: Session) -> List[RoadSegment]:
+    """Return all known road segments."""
+
     if USE_DB:
         return db.query(RoadSegment).all()
     return [RoadSegment(**item) for item in _load_json()]
 
 
 def get_segment(db: Session, segment_id: str) -> Optional[RoadSegment]:
+    """Retrieve a single segment by its identifier."""
+
     if USE_DB:
         return db.query(RoadSegment).filter(RoadSegment.id == segment_id).first()
+
     items = _load_json()
     for item in items:
         if item["id"] == segment_id:
@@ -47,7 +60,10 @@ def get_segment(db: Session, segment_id: str) -> Optional[RoadSegment]:
 
 
 def create_segment(db: Session, segment: RoadSegmentCreate) -> RoadSegment:
+    """Insert a new road segment record."""
+
     priority, status = _compute_priority_and_status(segment.road_condition_index, segment.status)
+
     if USE_DB:
         db_obj = RoadSegment(
             id=uuid.uuid4(),
@@ -81,14 +97,21 @@ def create_segment(db: Session, segment: RoadSegmentCreate) -> RoadSegment:
 
 
 def update_segment(db: Session, segment_id: str, updates: RoadSegmentUpdate) -> Optional[RoadSegment]:
+    """Modify an existing segment."""
+
     if USE_DB:
         db_obj = db.query(RoadSegment).filter(RoadSegment.id == segment_id).first()
         if not db_obj:
             return None
+
         for field, value in updates.model_dump(exclude_unset=True).items():
             setattr(db_obj, field, value)
+
         if updates.road_condition_index is not None:
-            db_obj.priority, db_obj.status = _compute_priority_and_status(updates.road_condition_index, updates.status or db_obj.status)
+            db_obj.priority, db_obj.status = _compute_priority_and_status(
+                updates.road_condition_index, updates.status or db_obj.status
+            )
+
         db.commit()
         db.refresh(db_obj)
         return db_obj
@@ -105,10 +128,13 @@ def update_segment(db: Session, segment_id: str, updates: RoadSegmentUpdate) -> 
                 item["status"] = stat.value
             _write_json(items)
             return RoadSegment(**item)
+
     return None
 
 
 def delete_segment(db: Session, segment_id: str) -> bool:
+    """Remove a segment from storage."""
+
     if USE_DB:
         obj = db.query(RoadSegment).filter(RoadSegment.id == segment_id).first()
         if not obj:
@@ -126,6 +152,9 @@ def delete_segment(db: Session, segment_id: str) -> bool:
 
 
 def alert_segments(db: Session) -> List[RoadSegment]:
+    """Return segments flagged as high priority."""
+
     if USE_DB:
         return db.query(RoadSegment).filter(RoadSegment.priority == Priority.HIGH).all()
+
     return [RoadSegment(**item) for item in _load_json() if item.get("priority") == Priority.HIGH.value]
